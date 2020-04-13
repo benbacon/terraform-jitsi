@@ -50,8 +50,18 @@ resource "openstack_networking_secgroup_rule_v2" "jitsi_https" {
     security_group_id = openstack_networking_secgroup_v2.jitsi.id
 }
 
-resource "openstack_networking_secgroup_rule_v2" "jitsi_media" {
-    description = "Allow Jitsi traffic"
+resource "openstack_networking_secgroup_rule_v2" "jitsi_rtp_tcp" {
+    description = "Allow RTP TCP traffic"
+    direction = "ingress"
+    ethertype = "IPv4"
+    protocol = "tcp"
+    port_range_min = 4443
+    port_range_max = 4443
+    security_group_id = openstack_networking_secgroup_v2.jitsi.id
+}
+
+resource "openstack_networking_secgroup_rule_v2" "jitsi_rtp_udp" {
+    description = "Allow RTP UDP traffic"
     direction = "ingress"
     ethertype = "IPv4"
     protocol = "udp"

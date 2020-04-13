@@ -3,9 +3,11 @@ variable "image" {
 }
 
 variable "flavor" {
-    # Production flavor
-    default = "b2-7"
-    # Testing flavor
+    # General purpose
+    #default = "b2-7"
+    # CPU 
+    default = "c2-7"
+    # Testing
     #default = "s1-2"
 }
 
