@@ -1,9 +1,5 @@
 provider "openstack" {
-    user_name = var.openstack_user_name
-    tenant_name = var.openstack_tenant_name
-    password = var.openstack_password
-    auth_url = var.auth_url
-    region = var.openstack_region
+
 }
 
 provider "cloudflare" {
@@ -11,12 +7,12 @@ provider "cloudflare" {
 }
 
 resource "openstack_compute_keypair_v2" "jitsi" {
-    name = "jitsi"
+    name = var.openstack_resource_name
     public_key = file("${var.ssh_path}.pub")
 }
 
 resource "openstack_networking_secgroup_v2" "jitsi" {
-  name = "jitsi"
+    name = var.openstack_resource_name
 }
 
 resource "openstack_networking_secgroup_rule_v2" "jitsi_ssh" {
@@ -50,16 +46,6 @@ resource "openstack_networking_secgroup_rule_v2" "jitsi_https" {
     security_group_id = openstack_networking_secgroup_v2.jitsi.id
 }
 
-resource "openstack_networking_secgroup_rule_v2" "jitsi_rtp_tcp" {
-    description = "Allow RTP TCP traffic"
-    direction = "ingress"
-    ethertype = "IPv4"
-    protocol = "tcp"
-    port_range_min = 4443
-    port_range_max = 4443
-    security_group_id = openstack_networking_secgroup_v2.jitsi.id
-}
-
 resource "openstack_networking_secgroup_rule_v2" "jitsi_rtp_udp" {
     description = "Allow RTP UDP traffic"
     direction = "ingress"
@@ -70,23 +56,33 @@ resource "openstack_networking_secgroup_rule_v2" "jitsi_rtp_udp" {
     security_group_id = openstack_networking_secgroup_v2.jitsi.id
 }
 
-resource "openstack_compute_instance_v2" "jitsi" {
-  name = "jitsi"
-  image_name = var.image
-  flavor_name = var.flavor
-  key_pair = "jitsi"
-  security_groups = ["jitsi"]
-  user_data = templatefile( "${path.module}/install_jitsi.tpl", { domain = var.domain, certificate = file("${var.certificate_path}/fullchain.pem"), key = file("${var.certificate_path}/privkey.pem"), jitsi_user_name = var.jitsi_user_name, jitsi_password = var.jitsi_password } )
+resource "openstack_networking_secgroup_rule_v2" "jitsi_icmp" {
+    description = "Allow ICMP traffic"
+    direction = "ingress"
+    ethertype = "IPv4"
+    protocol = "icmp"
+    port_range_min = 8
+    port_range_max = 0
+    security_group_id = openstack_networking_secgroup_v2.jitsi.id
+}
 
-  network {
-    name = var.network
-  }
+resource "openstack_compute_instance_v2" "jitsi" {
+    name = var.openstack_resource_name
+    image_name = var.openstack_image
+    flavor_name = var.openstack_flavor
+    key_pair = openstack_compute_keypair_v2.jitsi.name
+    security_groups = [ openstack_networking_secgroup_v2.jitsi.name ]
+    user_data = templatefile( "${path.module}/install_jitsi.tpl", { domain = var.domain, certificate = file("${var.certificate_path}/fullchain.pem"), key = file("${var.certificate_path}/privkey.pem"), jitsi_user_name = var.jitsi_user_name, jitsi_password = var.jitsi_password } )
+
+    network {
+        name = var.openstack_network
+    }
 
 }
 
 resource "cloudflare_record" "jitsi" {
     zone_id = var.cloudflare_zone_id
-    name = "jitsi"
+    name = var.domain
     value = openstack_compute_instance_v2.jitsi.access_ip_v4
     type = "A"
     proxied = false
