@@ -51,6 +51,9 @@ echo "jitsi-meet jitsi-meet/cert-choice select I want to use my own certificate"
 # Install Jitsi 
 apt-get -y install jitsi-meet
 
+# Increase default screen sharing frame rate
+sed -i "s|    // desktopSharingFrameRate: {|    desktopSharingFrameRate: {\n        min: 15,\n        max: 30\n    },|g" /etc/jitsi/meet/$HOSTNAME-config.js
+
 # Configure jicofo
 sed -i 's/authentication = "anonymous"/authentication = "internal_plain"/g' /etc/prosody/conf.avail/$HOSTNAME.cfg.lua
 echo -e "\nVirtualHost \"guest.$HOSTNAME\"\n    authentication = \"anonymous\"\n    c2s_require_encryption = false" >> /etc/prosody/conf.avail/$HOSTNAME.cfg.lua
